@@ -75,7 +75,7 @@ else:
     Parcels = pd.read_csv(os.path.join(dataDir, "Parcel_Data.csv"))#.dropna()
     Parcels = Parcels[Parcels['SOI']!=' ']
     Parcels['DEVTYPE'] = Parcels['DEVTYPE_MI']
-    Parcels.loc[Parcels['parcelid']%100 <= HiDenPercentile*100,'DEVTYPE'] = Parcels['DEVTYPE_HI']
+    Parcels.loc[Parcels['parcelid'].isin(random.sample(list(Parcels['parcelid']), k = round(HiDenPercentile*len(Parcels)))) ,'DEVTYPE'] = Parcels['DEVTYPE_HI']    # replace original random process:  Parcels.loc[Parcels['parcelid']%100 <= HiDenPercentile*100,'DEVTYPE'] = Parcels['DEVTYPE_HI'] 
     DevTypes = pd.read_csv(os.path.join(dataDir, "DevTypes.csv"))
     Parcels = Parcels.merge(DevTypes, how = 'left', on = 'DEVTYPE')
     Parcels = Parcels.merge(Forecast.filter(items=['SOI','VacRate','HH_SIZE','SCHL_Factor']), how = 'left', on = 'SOI')
