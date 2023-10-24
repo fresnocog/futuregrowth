@@ -5,7 +5,7 @@ import numpy.ma as ma
 import pandas as pd
 import os
 import sys
-
+import math
 #############################################################################
 ##   Load files
 #############################################################################
@@ -50,9 +50,10 @@ bikeSkims = bikeSkim_omx['DIST_BIKE']
 
 for i in maz_skims.index:
     row = bikeSkims[i]
-    mask = ma.masked_where(row>0, row).mask
-    skim_val = (mask*emp_array_maz/(row+0.01)).sum()
-    maz_skims.at[i,'bike_skim'] = skim_val
+    mask = ma.masked_where(row<=5, row).mask                 # select where distance <= 5miles  about 30 minutes by bike               #mask = ma.masked_where(row>0, row).mask
+    mask1 = ma.masked_where(row>0, row).mask
+    skim_val = (mask1 * mask*emp_array_maz).sum()                    # Calculate cumulative oppotunities in 30 minutes by bike                 # skim_val = (mask*emp_array_maz/(row+0.01)).sum()
+    maz_skims.at[i,'bike_skim'] = skim_val + emp_array_taz[i]
 
 del bikeSkims
 bikeSkim_omx.close()
@@ -87,13 +88,15 @@ emp_array_taz = taz_skims['Base_EMP'].to_numpy()
 # Calculate transit accessibility by TAZ
 taz_skims['transit_skim'] = 0.0
 transitSkim_omx = omx.open_file(os.path.join(dataABM_Dir, "FC" + str(baseYear)[-2:] + "_BASE_SKM_PK_TWB.omx"))  # This should be updated to "last year" instead of "base year"
-transitSkims = transitSkim_omx['IVTT']  # In-vehicle travel time
+transitSkims = transitSkim_omx['IVTT'] + transitSkim_omx['WLK_P'] + transitSkim_omx['WLK_A'] + transitSkim_omx['WLK_X'] + transitSkim_omx['IWAIT'] + transitSkim_omx['XWAIT']  # In-vehicle travel time
 
 for i in taz_skims.index:
     row = transitSkims[i]
-    mask = ma.masked_where(row>0, row).mask
-    skim_val =(mask*emp_array_taz/(row+.01)).sum()
-    taz_skims.at[i,'transit_skim'] = skim_val
+    mask = ma.masked_where(row<=60, row).mask                 # mask = ma.masked_where(row>0, row).mask
+    mask1 = ma.masked_where(row>0, row).mask                 # mask = ma.masked_where(row>0, row).mask
+
+    skim_val =(mask*mask1*emp_array_taz).sum()          # cumulative job opportunities within 60 minutes. (incude wait time and walk to bus stop time)   # skim_val =(mask*emp_array_taz/(row+.01)).sum()
+    taz_skims.at[i,'transit_skim'] = skim_val + emp_array_taz[i]
     #print(i,row,skim_val)
 
 del transitSkims
@@ -114,13 +117,13 @@ taz_skims.loc[taz_skims['transit_skim']>0,'IDX_Transit'] = taz_skims[taz_skims['
 # Calculate SOV accessibility by TAZ
 taz_skims['sov_skim'] = 0.0
 sovSkim_omx = omx.open_file(os.path.join(dataABM_Dir, "FC" + str(baseYear)[-2:] + "_BASE_SKM_PK_D1.omx"))  # This should be updated to "last year" instead of "base year"
-sovSkims = sovSkim_omx['GENTIME_1Veh']  # In-vehicle travel time
+sovSkims = sovSkim_omx['TIME_1Veh']  # In-vehicle travel time   # GENTIME_1Veh: Generalized time for zone pair for medium value-of-time group; TIME_1Veh:Congested travel time (mins) for zone pair for medium value-oftime group
 
 for i in taz_skims.index:
     row = sovSkims[i]
     mask = ma.masked_where(row>0, row).mask
-    skim_val =(mask*emp_array_taz/(row+.01)).sum()
-    taz_skims.at[i,'sov_skim'] = skim_val
+    skim_val =  (mask * math.exp(-0.049601 * emp_arry_taz)).sum        # gravity model,  expotential decay weights           #before: inverse power beta = -1, skim_val =(mask*emp_array_taz/(row+.01)).sum()
+    taz_skims.at[i,'sov_skim'] = skim_val  + emp_array_taz[i]
     #print(i,row,skim_val)
 
 del sovSkims
