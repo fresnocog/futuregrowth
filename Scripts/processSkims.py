@@ -53,7 +53,7 @@ for i in maz_skims.index:
     mask = ma.masked_where(row<=5, row).mask                 # select where distance <= 5miles  about 30 minutes by bike               #mask = ma.masked_where(row>0, row).mask
     mask1 = ma.masked_where(row>0, row).mask
     skim_val = (mask1 * mask*emp_array_maz).sum()                    # Calculate cumulative oppotunities in 30 minutes by bike                 # skim_val = (mask*emp_array_maz/(row+0.01)).sum()
-    maz_skims.at[i,'bike_skim'] = skim_val + emp_array_taz[i]
+    maz_skims.at[i,'bike_skim'] = skim_val + emp_array_maz[i]
 
 del bikeSkims
 bikeSkim_omx.close()
@@ -88,10 +88,11 @@ emp_array_taz = taz_skims['Base_EMP'].to_numpy()
 # Calculate transit accessibility by TAZ
 taz_skims['transit_skim'] = 0.0
 transitSkim_omx = omx.open_file(os.path.join(dataABM_Dir, "FC" + str(baseYear)[-2:] + "_BASE_SKM_PK_TWB.omx"))  # This should be updated to "last year" instead of "base year"
-transitSkims = transitSkim_omx['IVTT'] + transitSkim_omx['WLK_P'] + transitSkim_omx['WLK_A'] + transitSkim_omx['WLK_X'] + transitSkim_omx['IWAIT'] + transitSkim_omx['XWAIT']  # In-vehicle travel time
+#transitSkims = transitSkim_omx['IVTT'] + transitSkim_omx['WLK_P'] + transitSkim_omx['WLK_A'] + transitSkim_omx['WLK_X'] + transitSkim_omx['IWAIT'] + transitSkim_omx['XWAIT']  # In-vehicle travel time
 
 for i in taz_skims.index:
-    row = transitSkims[i]
+    #row = transitSkims[i]
+    row = transitSkim_omx['IVTT'][i] + transitSkim_omx['WLK_P'][i] + transitSkim_omx['WLK_A'][i] + transitSkim_omx['WLK_X'][i] + transitSkim_omx['IWAIT'][i] + transitSkim_omx['XWAIT'][i]
     mask = ma.masked_where(row<=60, row).mask                 # mask = ma.masked_where(row>0, row).mask
     mask1 = ma.masked_where(row>0, row).mask                 # mask = ma.masked_where(row>0, row).mask
 
@@ -99,7 +100,7 @@ for i in taz_skims.index:
     taz_skims.at[i,'transit_skim'] = skim_val + emp_array_taz[i]
     #print(i,row,skim_val)
 
-del transitSkims
+#del transitSkims
 transitSkim_omx.close()
 
 # Calculate transit skim indexes
@@ -122,7 +123,8 @@ sovSkims = sovSkim_omx['TIME_1Veh']  # In-vehicle travel time   # GENTIME_1Veh: 
 for i in taz_skims.index:
     row = sovSkims[i]
     mask = ma.masked_where(row>0, row).mask
-    skim_val =  (mask * math.exp(-0.049601 * emp_arry_taz)).sum        # gravity model,  expotential decay weights           #before: inverse power beta = -1, skim_val =(mask*emp_array_taz/(row+.01)).sum()
+    #skim_val =  (mask * math.exp(-0.049601 * emp_array_taz)).sum        # gravity model,  expotential decay weights           #before: inverse power beta = -1, skim_val =(mask*emp_array_taz/(row+.01)).sum()
+    skim_val = (mask * emp_array_taz * np.exp(-0.049601 * row)).sum()
     taz_skims.at[i,'sov_skim'] = skim_val  + emp_array_taz[i]
     #print(i,row,skim_val)
 
