@@ -1,0 +1,20 @@
+2025-04-17 17:09:10,279 - INFO - 
+--- SKIM PROCESSING ---
+2025-04-17 17:09:10,279 - INFO - Start time: 2025-04-17 17:09:10.279524
+2025-04-17 17:09:10,283 - INFO - --- YEAR 2035 ---
+2025-04-17 17:09:10,284 - INFO - Loading base MAZ data
+2025-04-17 17:09:10,318 - DEBUG - Base MAZ data loaded with 23451 rows
+2025-04-17 17:09:10,318 - INFO - Processing MAZ bike skims
+2025-04-17 17:09:31,015 - INFO - Calculating bike skim indexes
+2025-04-17 17:09:31,018 - DEBUG - Bike skim range: min=0.0, max=53171.0
+2025-04-17 17:09:31,018 - INFO - Processing TAZ Skims
+2025-04-17 17:09:33,119 - INFO - Calculating transit skim indexes
+2025-04-17 17:09:33,119 - DEBUG - Transit skim range: min=0.0, max=159855.0
+2025-04-17 17:09:33,703 - INFO - Calculating SOV skim indexes
+2025-04-17 17:09:33,706 - DEBUG - SOV skim range: min=0.0, max=231923.8961302534
+2025-04-17 17:09:33,706 - INFO - Saving output files
+2025-04-17 17:09:33,836 - INFO - Saved skims_maz.csv
+2025-04-17 17:09:33,869 - INFO - Saved skims_taz.csv
+2025-04-17 17:09:33,870 - INFO - 
+--- Script ran successfully! ---
+2025-04-17 17:09:33,870 - INFO - End time: 2025-04-17 17:09:33.870880

@@ -1,12 +1,22 @@
-sys:1: DtypeWarning: Columns (2) have mixed types.Specify dtype option on import or set low_memory=False.
-
+2025-06-04 10:45:28,296 - INFO - 
 --- DEVELOPMENT SCORE CALCULATION ---
-Start time 2021-07-09 16:16:36.778835
-
---- YEAR 2024 ---
-
-Development table generated for year 2024
-
---- Script ran successfully! ---
-
-End time 2021-07-09 16:16:41.158772
+2025-06-04 10:45:28,296 - INFO - Start time: 2025-06-04 10:45:28.296333
+2025-06-04 10:45:28,306 - INFO - --- YEAR 2035 ---
+2025-06-04 10:45:28,306 - INFO - Loading input data
+2025-06-04 10:45:29,421 - DEBUG - Loaded data: base_maz=(23451, 25), forecast=(17, 57), cube_growth=(1962, 5), parcels=(321757, 45)
+2025-06-04 10:45:29,421 - INFO - Calculating base scores for parcels
+2025-06-04 10:45:29,508 - INFO - Note: NumExpr detected 40 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+2025-06-04 10:45:29,508 - INFO - NumExpr defaulting to 8 threads.
+2025-06-04 10:45:30,514 - INFO - Base scores calculated
+2025-06-04 10:45:38,354 - INFO - Saved intermediate parcels.csv
+2025-06-04 10:45:38,374 - INFO - Merging skim results
+2025-06-04 10:45:38,754 - DEBUG - Parcels after skim merge: (99560, 87)
+2025-06-04 10:45:38,765 - INFO - Calculating total development scores
+2025-06-04 10:45:38,854 - DEBUG - Total score range: min=0.0, max=29.869980478370273
+2025-06-04 10:45:38,865 - INFO - Creating development table
+2025-06-04 10:45:38,972 - DEBUG - Development table shape: (99560, 16)
+2025-06-04 10:45:38,972 - INFO - Saving output files
+2025-06-04 10:45:42,724 - INFO - Saved parcels_Final.csv and devtable.csv for year 2035
+2025-06-04 10:45:42,724 - INFO - 
+--- Script ran successfully! ---
+2025-06-04 10:45:42,724 - INFO - End time: 2025-06-04 10:45:42.724541

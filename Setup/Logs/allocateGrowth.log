@@ -1,58 +1,63 @@
-sys:1: DtypeWarning: Columns (2) have mixed types.Specify dtype option on import or set low_memory=False.
-
+2025-06-04 10:45:43,378 - INFO - 
 --- LAND USE ALLOCATION ---
-Start time 2021-07-09 16:16:41.612969
-
---- YEAR 2024 ---
-
-Group quarters scaling factor: 1.0664090177133656
-Ag employment scaling factor:  1.0080544480689462
-Regional minority percentage:  0.7282973422083568
-
-Running agency allocation...
-Sampling growth from year 9999
-              SOI       HU_NET  SOI_HU_Target      EMP_NET  SOI_EMP_Target
-0          Clovis   7141.45412    2740.422135   4460.99055          1077.0
-1        Coalinga    775.63296     327.725115    366.89137           107.0
-2       Firebaugh    544.03313     270.123288    225.91459            88.0
-3          Fowler    354.19549     175.477537    535.95186           309.0
-4          Fresno  29296.61111   10842.320995  23508.99434          6907.0
-5           Huron    220.58078      70.809684    244.96516           149.0
-6          Kerman    912.79090     423.842747   1070.99250           666.0
-7       Kingsburg    762.14328     332.019516    797.99121           420.0
-8         Mendota    433.50862     169.701682     99.99428            31.0
-9     Orange Cove    354.74964     132.076673     24.93158            -1.0
-10        Parlier    538.01732     200.596460     79.92789           -89.0
-11        Reedley    982.03022     311.670514   1053.98830           690.0
-12    San Joaquin    110.12738      37.418919      0.00000           -49.0
-13         Sanger   1217.88034     450.086428    651.97685            52.0
-14          Selma   1411.92852     613.929882   1109.97147           586.0
-15  Unincorporate   1307.64058    1311.700202    443.21400         -1639.0
-       COMMUNITY     HU_NET  SOI_HU_Target   EMP_NET  SOI_EMP_Target
-0        Auberry  113.90834    1311.700202  41.79672         -1639.0
-1          Biola   59.49072    1311.700202  31.04431         -1639.0
-2         Bowles    9.38889    1311.700202   0.00000         -1639.0
-3   Cantua Creek   10.39584    1311.700202   0.00000         -1639.0
-4      Caruthers   99.59156    1311.700202  52.80201         -1639.0
-5    Centerville   12.82526    1311.700202   0.00000         -1639.0
-6        Del Rey   51.43810    1311.700202  28.57094         -1639.0
-7         Easton  122.66057    1311.700202  44.07586         -1639.0
-8         Friant   34.00984    1311.700202  43.38643         -1639.0
-9   Friant Ranch   79.09488    1311.700202  13.15449         -1639.0
-10        Lanare   30.88384    1311.700202   9.28222         -1639.0
-11         Laton   73.51752    1311.700202  22.03820         -1639.0
-12        Malaga   19.32180    1311.700202  22.27935         -1639.0
-13     Millerton   79.16474    1311.700202   9.38239         -1639.0
-14      Monmouth    3.15021    1311.700202   0.00000         -1639.0
-15     Riverdale  180.57667    1311.700202  70.46322         -1639.0
-16     Rural Res  172.86875    1311.700202   0.00000         -1639.0
-17   Shaver Lake   59.08340    1311.700202  39.90188         -1639.0
-18  Squaw Valley   24.18003    1311.700202   0.00000         -1639.0
-19  Tranquillity   50.80558    1311.700202   9.32751         -1639.0
-20     West Park   21.28404    1311.700202   5.70847         -1639.0
-rural_hu_factor  1.0001086564362014
-rural_emp_factor 0.9719294939200301
-
---- Script ran successfully! ---
-
-End time 2021-07-09 16:16:57.063640
+2025-06-04 10:45:43,379 - INFO - Start time: 2025-06-04 10:45:43.379365
+2025-06-04 10:45:43,383 - INFO - --- YEAR 2035
+2025-06-04 10:45:43,383 - INFO - Loading input data
+2025-06-04 10:45:43,586 - DEBUG - Loaded base_maz: (23451, 25), forecast: (17, 57), dev_table: (99560, 16), gq_maz: (23451, 4)
+2025-06-04 10:45:43,587 - INFO - Calculating scaling factors
+2025-06-04 10:45:43,588 - INFO - Group quarters scaling factor: 1.0436452886564935
+2025-06-04 10:45:43,588 - INFO - Ag employment scaling factor: 1.0341894952775759
+2025-06-04 10:45:43,588 - INFO - Running agency allocation.
+2025-06-04 10:45:43,658 - INFO - Note: NumExpr detected 40 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+2025-06-04 10:45:43,658 - INFO - NumExpr defaulting to 8 threads.
+2025-06-04 10:45:43,658 - INFO - Sampling growth from year 9999
+2025-06-04 10:45:58,954 - INFO - Agency allocation complete
+2025-06-04 10:45:58,964 - DEBUG - SOI allocation results:
+              SOI        HU_NET  SOI_HU_Target       EMP_NET  SOI_EMP_Target
+0          Clovis   5835.372123    5835.372137   4010.992635          4011.0
+1        Coalinga    316.973238     316.981473    146.986603           147.0
+2       Firebaugh    145.631103     145.666212    296.979860           297.0
+3          Fowler    487.984285     487.987500    618.953321           619.0
+4          Fresno  11426.031324   11426.032615  12078.998408         12079.0
+5           Huron     74.404488      74.409010     93.974767            94.0
+6          Kerman    794.297711     794.373397    692.993873           693.0
+7       Kingsburg    647.876299     647.915606    657.936138           658.0
+8         Mendota    242.667878     242.677763    246.954011           247.0
+9     Orange Cove     82.300984      82.316981     50.937550            51.0
+10        Parlier     94.014864      94.059561    159.974399           160.0
+11        Reedley    426.704361     426.820499    479.949605           480.0
+12         Sanger    384.730378     384.749574    634.995510           635.0
+13          Selma    888.045403     888.080300   1802.996757          1803.0
+14  Unincorporate    205.733701     370.580212    297.069864          2682.0
+2025-06-04 10:45:58,964 - DEBUG - Community allocation results:
+       COMMUNITY     HU_NET  SOI_HU_Target    EMP_NET  SOI_EMP_Target
+0        Auberry  17.838985     370.580212  32.786345          2682.0
+1          Biola   9.304565     370.580212  22.622581          2682.0
+2         Bowles   2.655632     370.580212  11.825877          2682.0
+3   Cantua Creek   2.190316     370.580212   0.000000          2682.0
+4      Caruthers  15.575959     370.580212  38.283441          2682.0
+5    Centerville   3.468217     370.580212   8.393086          2682.0
+6        Del Rey   8.176319     370.580212  20.769787          2682.0
+7         Easton  19.230663     370.580212  26.794675          2682.0
+8         Friant   5.318098     370.580212   1.038145          2682.0
+9   Friant Ranch   5.315322     370.580212   0.000000          2682.0
+10         Laton  11.508269     370.580212  15.761072          2682.0
+11        Malaga   6.781058     370.580212  16.407927          2682.0
+12     Millerton  12.414626     370.580212   2.171603          2682.0
+13      Monmouth   1.962146     370.580212   4.748393          2682.0
+14     Riverdale  28.444459     370.580212  51.053416          2682.0
+15     Rural Res  27.064193     370.580212   7.507869          2682.0
+16   Shaver Lake   9.250701     370.580212  28.891576          2682.0
+17  Squaw Valley   3.805272     370.580212   0.618465          2682.0
+18  Tranquillity   8.221245     370.580212   6.306721          2682.0
+19     West Park   7.207656     370.580212   1.088885          2682.0
+2025-06-04 10:45:58,964 - INFO - Calculating parcel growth values
+2025-06-04 10:46:00,907 - DEBUG - Parcel growth calculated: (9219, 98)
+2025-06-04 10:46:00,907 - INFO - Generating new MAZ and TAZ files
+2025-06-04 10:46:00,939 - INFO - Rural HU factor: 1.0043436671351547, Rural EMP factor: 1.0450434246566886
+2025-06-04 10:46:01,579 - DEBUG - New MAZ file: (23451, 23), New TAZ file: (1962, 21)
+2025-06-04 10:46:01,579 - INFO - Generating PopSim input files
+2025-06-04 10:46:01,700 - INFO - PopSim files generated: mazData, tazData, gq_maz, countyData
+2025-06-04 10:46:01,700 - INFO - 
+--- Script ran sucessfully! ---
+2025-06-04 10:46:01,700 - INFO - End time: 2025-06-04 10:46:01.700571

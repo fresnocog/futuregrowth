@@ -1,7 +1,22 @@
-
+2025-06-04 10:45:27,448 - INFO - 
 --- BUILD GROWTH CONTROLS ---
-Start time 2021-07-09 16:16:36.115872
-
---- Script ran successfully! ---
-
-End time 2021-07-09 16:16:36.330826
+2025-06-04 10:45:27,448 - INFO - Start time: 2025-06-04 10:45:27.448855
+2025-06-04 10:45:27,456 - DEBUG - Parameters loaded: base_year=2023, config_params={'Cube_P': 0.0, 'adjPOP': 0.0, 'adjEMP': 0.0, 'adjVacRate': 0.0, 'adjUrban': 0.0}
+2025-06-04 10:45:27,457 - INFO - Setting target year
+2025-06-04 10:45:27,457 - DEBUG - Target year set to: 2035
+2025-06-04 10:45:27,457 - INFO - Processing base MAZ data
+2025-06-04 10:45:27,514 - INFO - Note: NumExpr detected 40 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+2025-06-04 10:45:27,514 - INFO - NumExpr defaulting to 8 threads.
+2025-06-04 10:45:27,522 - DEBUG - Base data processed: hhsize_avg=3.03237565496802, vacrate_adj=0.056686309347830456, hh_factor=1.0
+2025-06-04 10:45:27,522 - INFO - Base MAZ data processing completed
+2025-06-04 10:45:27,522 - INFO - Creating SOI base data
+2025-06-04 10:45:27,546 - INFO - SOI base data created with Fresno County totals
+2025-06-04 10:45:27,546 - INFO - Processing demographic forecast data
+2025-06-04 10:45:27,562 - DEBUG - Calculating forecast targets
+2025-06-04 10:45:27,572 - INFO - Demographic forecast processing completed
+2025-06-04 10:45:27,572 - INFO - Processing TAZ-level growth controls
+2025-06-04 10:45:27,593 - INFO - TAZ controls processing completed
+2025-06-04 10:45:27,593 - INFO - Saving output files
+2025-06-04 10:45:27,612 - INFO - 
+--- Script ran successfully! ---
+2025-06-04 10:45:27,612 - INFO - End time: 2025-06-04 10:45:27.612720

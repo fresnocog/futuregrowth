@@ -1,17 +1,33 @@
-sys:1: DtypeWarning: Columns (2) have mixed types.Specify dtype option on import or set low_memory=False.
-
-Calculating performance measures...
-                           2018
-ACRES     7578.5
-TOD       16.5%, 37.4%     24% 36%
-DT        6.5%, 11.7%
-MU        19.8%
-RES DEN   7.53             7.4
-MF        40.0%            39%
-FARM AC   1854.9             38.2
-Redev%    9.7%
-Infill    50.0%            50%
-
---- Script ran successfully! ---
 
-End time 2021-07-09 16:16:58.276753
+--- CALCULATE PERFORMANCE INDICATORS ---
+Start time: 2025-06-04 10:46:02.756016
+Loading input data
+Loaded base_maz: (23451, 25), maz_new: (23451, 23), dev_table: (99560, 16)
+Calculating performance measures
+Performance Measures:
+                                     2022
+ACRES                3788.3          7179.8
+TOD(hu, emp)    22.6%, 37.7%    19.6%, 38.6%
+DT(hu, emp)     19.7%, 36.6%    10.6%, 17.9%
+MU                    37.1%           23.6%
+RES DEN                7.66            7.66
+MF                    45.1%           40.2%
+FARM AC               591.0          1955.2
+FARM IMP                5.0           48.91
+Redev%                11.3%            7.5%
+Infill (Fresno)        50.6%           50.9%
+Infill (non-Fresno)    12.7%             NA%
+
+Development by Geographic Area:
+
+    GEO_AREA        HU_NET      EMP_NET       PERC
+      Center   6192.794229  9976.997687  35.153867
+  Developing  12908.370129  8954.299841  47.530445
+ Established   2891.853940  3137.455790  13.107995
+       Rural    152.126616  1783.293948   4.207693
+
+EMP_Den                                13.6
+job_housing_gravity             25442188.22
+
+--- Script ran successfully! ---
+End time: 2025-06-04 10:46:06.126806

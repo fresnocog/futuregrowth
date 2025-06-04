@@ -36,37 +36,37 @@ IF NOT EXIST %PARAMETERS_FILE% (
 :: Create growth controls
 IF %RUN_CONTROLS%==YES (
 	ECHO %startTime%%Time%: Creating growth controls...
-	CALL python Scripts\buildControls.py %PARAMETERS_FILE% > Setup\logs\buildControls.log 2>&1
+	CALL python Scripts\buildControls.py %PARAMETERS_FILE%>> RunAll.log 2>&1
 )
 
 :: Process skims
 IF %RUN_SKIMS%==YES (
 	ECHO %startTime%%Time%: Processing skims...
-	CALL python scripts\processSkims.py %PARAMETERS_FILE% > Setup\logs\processSkims.log 2>&1
+	CALL python scripts\processSkims.py %PARAMETERS_FILE%>> RunAll.log 2>&1
 )
 	
 :: Calculate development scores
 IF %RUN_SCORING%==YES (
 	ECHO %startTime%%Time%: Calculating development scores...
-	CALL python scripts\calcDevScores.py %PARAMETERS_FILE% > Setup\logs\calcDevScores.log 2>&1
+	CALL python scripts\calcDevScores.py %PARAMETERS_FILE%>> RunAll.log 2>&1
 )
 
 :: Allocate new growth
 IF %RUN_ALLOCATION%==YES (
 	ECHO %startTime%%Time%: Allocating new growth...
-	CALL python scripts\allocateGrowth.py %PARAMETERS_FILE% > Setup\logs\allocateGrowth.log 2>&1
+	CALL python scripts\allocateGrowth.py %PARAMETERS_FILE%>> RunAll.log 2>&1
 )
 
 :: Calculate performance indicators
 IF %RUN_PERFORMANCE%==YES (
 	ECHO %startTime%%Time%: Calculating performance indicators...
-	CALL python scripts\performance.py %PARAMETERS_FILE% > Setup\logs\performance.log 2>&1
+	CALL python scripts\performance.py %PARAMETERS_FILE%>> RunAll.log 2>&1
 )
 
 :: Generate ABM input files
 IF %RUN_ABM_INPUTS%==YES (
 	ECHO %startTime%%Time%: Generating ABM input files...
-	CALL python scripts\createModelInputs.py %PARAMETERS_FILE% > Setup\logs\createModelInputs.log 2>&1
+	CALL python scripts\createModelInputs.py %PARAMETERS_FILE%>> RunAll.log 2>&1
 )
 
 ECHO %startTime%%Time%: Batch complete
