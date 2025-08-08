@@ -116,12 +116,12 @@ else:
 ##   Get skim results
 #############################################################################
 # Merge MAZ skims
-Skims_MAZ = pd.read_csv(os.path.join(outputDir, "skims_maz.csv")).filter(items=['MAZ','IDX_Bike'])
+Skims_MAZ = pd.read_csv(os.path.join(outputDir, "skims_maz.csv")).filter(items=['MAZ','IDX_Bike','IDX_Bike_EMP'])  # 'IDX_Bike_EMP'for emp allocation scoring 
 Parcels = Parcels.merge(Skims_MAZ, how = 'left', on = 'MAZ')
 del Skims_MAZ
 
 # Merge TAZ skims
-Skims_TAZ = pd.read_csv(os.path.join(outputDir, "skims_taz.csv")).filter(items=['TAZ','IDX_Transit','IDX_SOV'])
+Skims_TAZ = pd.read_csv(os.path.join(outputDir, "skims_taz.csv")).filter(items=['TAZ','IDX_Transit','IDX_SOV','IDX_Transit_EMP','IDX_SOV_EMP'])    # 'IDX_Bike_EMP'for emp allocation scoring 
 Parcels = Parcels.merge(Skims_TAZ, how = 'left', on = 'TAZ')
 del Skims_TAZ
 
@@ -134,9 +134,16 @@ Parcels['TOTAL_SCORE'] = Parcels['TOTAL_SCORE']*Parcels['SCORE_ADJ']*(1-penaltyR
 #Parcels['TOTAL_SCORE'] = Parcels['TOTAL_SCORE']*(Parcels['SCORE_ADJ']-penaltyRedev*Parcels['Developed']+adjTOD*Parcels['TOD']+adjDT*Parcels['DT']-adjVMT*Parcels['IDX_VMT'])                # Arithmetic adjustment
 Parcels.loc[Parcels['HU_Den'] > 0,'TOTAL_SCORE'] = Parcels['TOTAL_SCORE']*(1-penaltyDensity*Parcels['IDX_Den'])
 
+Parcels['TOTAL_SCORE_EMP'] = Parcels['BASE_SCORE'] + Parcels['IDX_Bike_EMP']*wtBike + Parcels['IDX_Transit_EMP']*wtTransit + Parcels['IDX_SOV_EMP']*wtSOV                                                     #  for emp allocation scoring 
+Parcels['TOTAL_SCORE_EMP'] = Parcels['TOTAL_SCORE_EMP']*Parcels['SCORE_ADJ']*(1-penaltyRedev*Parcels['Developed'])*(1+adjSF*Parcels['IDX_SF'])*(1+adjMU*Parcels['IDX_MU'])*(1+adjTOD*Parcels['TOD'])*(1+adjDT*Parcels['DT'])  # Geometric adjustment  #  for emp allocation scoring
+Parcels.loc[Parcels['EMP_Den'] > 0,'TOTAL_SCORE_EMP'] = Parcels['TOTAL_SCORE_EMP']*(1-penaltyDensity*Parcels['IDX_Den'])  #  for emp allocation scoring
+
 if targetYear >= VISION_YEAR:
-    Parcels.loc[Parcels['Infill'] == 0,'TOTAL_SCORE'] = Parcels['TOTAL_SCORE']*(1-penaltyInfill)
-Parcels = Parcels.filter(items=['parcelid','SOI','COMMUNITY','TAZ','HU_NET','EMP_NET','VacRate','HH_SIZE','BASE_SCORE','IDX_Bike','IDX_Transit','IDX_SOV','TOTAL_SCORE'])
+    Parcels.loc[Parcels['Infill'] == 0,'TOTAL_SCORE'] = Parcels['TOTAL_SCORE']*(1-penaltyInfill)      
+    Parcels.loc[Parcels['Infill'] == 0,'TOTAL_SCORE_EMP'] = Parcels['TOTAL_SCORE_EMP']*(1-penaltyInfill)   #  for emp allocation scoring
+Parcels = Parcels.filter(items=['parcelid','SOI','COMMUNITY','TAZ','HU_NET','EMP_NET','VacRate','HH_SIZE','BASE_SCORE',
+                                'IDX_Bike','IDX_Transit','IDX_SOV','TOTAL_SCORE',
+                                'IDX_Bike_EMP','IDX_Transit_EMP','IDX_SOV_EMP','TOTAL_SCORE_EMP'])  #  for emp allocation scoring
 Parcels.to_csv(os.path.join(outputDir,"parcels_Final.csv"), index = False)
 #print("Final scores calculated")
 
@@ -149,20 +156,21 @@ Forecast_dev = Forecast.filter(items=['SOI','SOI_HU_Target','SOI_EMP_Target'])
 
 if not keep_devtable:
     DevTable = Parcels.merge(Cube_Growth, how = 'left', on = 'TAZ')
-    DevTable = DevTable.filter(items=['parcelid','SOI','COMMUNITY','TAZ','HU_NET','EMP_NET','TOTAL_SCORE','TAZ_HU_Target','TAZ_EMP_Target','SOI_HU_Target','SOI_EMP_Target','SOI_HU_P','SOI_EMP_P'])#.dropna()
+    DevTable = DevTable.filter(items=['parcelid','SOI','COMMUNITY','TAZ','HU_NET','EMP_NET','TOTAL_SCORE','TOTAL_SCORE_EMP','TAZ_HU_Target','TAZ_EMP_Target','SOI_HU_Target','SOI_EMP_Target','SOI_HU_P','SOI_EMP_P'])#.dropna()  #  for emp allocation scoring
     DevTable['DEV'] = NO_DEV
     DevTable['DEV_TAZ'] = 0
     DevTable['DEV_SOI'] = 0
 else:
     DevTable = pd.read_csv(os.path.join(outputDir, "devtable.csv"))
     del DevTable['TOTAL_SCORE']
+    del DevTable['TOTAL_SCORE_EMP']
     del DevTable['SOI_HU_Target']
     del DevTable['SOI_EMP_Target']
-    DevTable = DevTable.merge(Parcels.filter(items=['parcelid','TOTAL_SCORE']), how = 'left', on = 'parcelid')
+    DevTable = DevTable.merge(Parcels.filter(items=['parcelid','TOTAL_SCORE','TOTAL_SCORE_EMP']), how = 'left', on = 'parcelid')
 
 
 DevTable = DevTable.merge(Forecast_dev, how = 'left', on = 'SOI')
-DevTable = DevTable.sort_values(by=['TAZ', 'TOTAL_SCORE'], ascending=[True, False]).reset_index(drop=True)
+DevTable = DevTable.sort_values(by=['TAZ', 'TOTAL_SCORE','TOTAL_SCORE_EMP'], ascending=[True, False]).reset_index(drop=True)
 
 DevTable.to_csv(os.path.join(outputDir,"devtable.csv"), index = False)
 print('Development table generated for year ' + str(targetYear))
@@ -174,3 +182,4 @@ print('Development table generated for year ' + str(targetYear))
 
 print('\r\n--- Script ran successfully! ---\r\n')
 print('End time '+str(datetime.now()))
+

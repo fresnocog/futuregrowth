@@ -77,9 +77,16 @@ if targetYear == VISION_YEAR and Cube_P > 0:
 print('\r\nRunning agency allocation...')
 #DevTable = DevTable.merge(Forecast_dev, how = 'left', on = 'AGENCY')
 DevTable = DevTable.sort_values(by=['SOI', 'COMMUNITY','TOTAL_SCORE'], ascending=[True, True, False]).reset_index(drop=True)
+DevTable_EMP = DevTable.sort_values(by=['SOI', 'COMMUNITY','TOTAL_SCORE_EMP'], ascending=[True, True, False]).reset_index(drop=True)
+
 DevYears = DevTable.groupby('DEV', as_index = False).agg({'HU_NET':'sum','EMP_NET':'sum'})
 DevYears = DevYears[DevYears['DEV']>targetYear]
 NextYear = DevYears['DEV'].min()
+
+DevYears_EMP = DevTable_EMP.groupby('DEV', as_index = False).agg({'EMP_NET':'sum'})
+DevYears_EMP = DevYears_EMP[DevYears_EMP['DEV']>targetYear]
+NextYear_EMP = DevYears_EMP['DEV'].min()
+
 print("Sampling growth from year", NextYear)
 
 cycle = 0
@@ -98,7 +105,7 @@ while cycle < 1:
     SOI_HU = 0
     SOI_EMP = 0
     SOI_HU_Target = 0
-    SOI_EMP_Target = 0
+ #   SOI_EMP_Target = 0
 
     for i in range(len(DevTable)):
         row = DevTable.iloc[i]
@@ -106,27 +113,45 @@ while cycle < 1:
         if SOI != row['SOI']:
             SOI = row['SOI']
             SOI_HU = 0
-            SOI_EMP = 0
             SOI_HU_Target = row['SOI_HU_Target']-DevTAZ_SOI.loc[DevTAZ_SOI['SOI'] == SOI]['HU_NET'].sum()
-            SOI_EMP_Target = row['SOI_EMP_Target']-DevTAZ_SOI.loc[DevTAZ_SOI['SOI'] == SOI]['EMP_NET'].sum()
 
         if SOI == 'Unincorporate' and row['COMMUNITY'] and COMMUNITY != row['COMMUNITY']:
             COMMUNITY = row['COMMUNITY']
             SOI_HU = 0
-            SOI_EMP = 0
             SOI_HU_Target = row['SOI_HU_P']*(row['SOI_HU_Target']-DevTAZ_SOI.loc[DevTAZ_SOI['SOI'] == SOI]['HU_NET'].sum())
-            SOI_EMP_Target = row['SOI_EMP_P']*(row['SOI_EMP_Target']-DevTAZ_SOI.loc[DevTAZ_SOI['SOI'] == SOI]['EMP_NET'].sum())
         # NEED TO ADD CHECK FOR NEXT HIGHEST YEAR
-        if (SOI != 'Unincorporate' or COMMUNITY) and row['DEV']==NextYear and ((SOI_HU+row['HU_NET']) <= max(SOI_HU_Target,0)) and ((SOI_EMP+row['EMP_NET'])<=max(SOI_EMP_Target,0)):
+#        if (SOI != 'Unincorporate' or COMMUNITY) and row['DEV']==NextYear and ((SOI_HU+row['HU_NET']) <= max(SOI_HU_Target,0)) and ((SOI_EMP+row['EMP_NET'])<=max(SOI_EMP_Target,0)):
+        if (SOI != 'Unincorporate' or COMMUNITY) and row['DEV']==NextYear and ((SOI_HU+row['HU_NET']) <= max(SOI_HU_Target,0)) :
             DevTable.at[i,'DEV'] = targetYear
             DevTable.at[i,'DEV_SOI'] = 1
             SOI_HU += row['HU_NET']
+### EMP allocation start ###
+    for i in range(len(DevTable_EMP)):
+        row = DevTable_EMP.iloc[i]
+        # Check for new SOI and/or community
+        if SOI != row['SOI']:
+            SOI = row['SOI']
+            SOI_EMP = 0
+            SOI_EMP_Target = row['SOI_EMP_Target']-DevTAZ_SOI.loc[DevTAZ_SOI['SOI'] == SOI]['EMP_NET'].sum()
+
+        if SOI == 'Unincorporate' and row['COMMUNITY'] and COMMUNITY != row['COMMUNITY']:
+            COMMUNITY = row['COMMUNITY']
+            SOI_EMP = 0
+            SOI_EMP_Target = row['SOI_EMP_P']*(row['SOI_EMP_Target']-DevTAZ_SOI.loc[DevTAZ_SOI['SOI'] == SOI]['EMP_NET'].sum())
+        # NEED TO ADD CHECK FOR NEXT HIGHEST YEAR
+#        if (SOI != 'Unincorporate' or COMMUNITY) and row['DEV']==NextYear_EMP and ((SOI_HU+row['HU_NET']) <= max(SOI_HU_Target,0)) and ((SOI_EMP+row['EMP_NET'])<=max(SOI_EMP_Target,0)):
+        if (SOI != 'Unincorporate' or COMMUNITY) and row['DEV']==NextYear_EMP and ((SOI_EMP+row['EMP_NET'])<=max(SOI_EMP_Target,0)) :
+            DevTable_EMP.at[i,'DEV'] = targetYear
+            DevTable_EMP.at[i,'DEV_SOI'] = 1
             SOI_EMP += row['EMP_NET']
+### EMP allocation end ###
+
 
     cycle += 1
 
 #print('Agency allocation complete')
 DevTable.to_csv(os.path.join(outputDir,"devtable.csv"), index = False)
+DevTable_EMP.to_csv(os.path.join(outputDir,"devtable_emp.csv"), index = False)
 
 DevTable = DevTable[DevTable['DEV']<=targetYear]
 Dev_COMMUNITY = DevTable[DevTable['SOI']=='Unincorporate'].groupby('COMMUNITY', as_index = False).agg({'HU_NET':'sum','SOI_HU_Target':'first','EMP_NET':'sum','SOI_EMP_Target':'first'})
@@ -134,6 +159,11 @@ Dev_SOI = DevTable.groupby('SOI', as_index = False).agg({'HU_NET':'sum','SOI_HU_
 print(Dev_SOI)
 print(Dev_COMMUNITY)
 
+DevTable_EMP = DevTable_EMP[DevTable_EMP['DEV']<=targetYear]
+Dev_COMMUNITY_EMP = DevTable_EMP[DevTable_EMP['SOI']=='Unincorporate'].groupby('COMMUNITY', as_index = False).agg({'EMP_NET':'sum','SOI_EMP_Target':'first'})
+Dev_SOI_EMP = DevTable_EMP.groupby('SOI', as_index = False).agg({'EMP_NET':'sum','SOI_EMP_Target':'first'})
+print(Dev_SOI_EMP)
+print(Dev_COMMUNITY_EMP)
 
 #############################################################################
 ##   Calculate parcel growth values
@@ -147,6 +177,10 @@ Parcels_Dev['HU_SF_NET']=Parcels_Dev['ACRES']*Parcels_Dev['HU_Den']*(Parcels_Dev
 Parcels_Dev['HU_MF_NET']=Parcels_Dev['ACRES']*Parcels_Dev['HU_Den']*Parcels_Dev['HU_MF_P']-Parcels_Dev['HU_MF']
 Parcels_Dev['HU_OTH_NET']=Parcels_Dev['ACRES']*Parcels_Dev['HU_Den']*Parcels_Dev['HU_OTH_P']-Parcels_Dev['HU_OTH']
 
+Parcels_Dev_HU = Parcels_Dev
+Parcels_Dev_HU = Parcels_Dev_HU[['parcelid', 'HH_NET', 'POP_NET','HU_SF_NET','HU_MF_NET','HU_OTH_NET']]  # Keep new columns only
+Parcels_Dev = DevTable_EMP.filter(items=['parcelid'])
+Parcels_Dev = Parcels_Dev.merge(pd.read_csv(os.path.join(outputDir, "parcels.csv")), how = 'left', on = 'parcelid')
 Parcels_Dev['EDU_NET']=Parcels_Dev['ACRES']*Parcels_Dev['EMP_Den']*Parcels_Dev['EDU_P']-Parcels_Dev['EMP_EDU']
 Parcels_Dev['FOO_NET']=Parcels_Dev['ACRES']*Parcels_Dev['EMP_Den']*Parcels_Dev['FOO_P']-Parcels_Dev['EMP_FOO']
 Parcels_Dev['GOV_NET']=Parcels_Dev['ACRES']*Parcels_Dev['EMP_Den']*Parcels_Dev['GOV_P']-Parcels_Dev['EMP_GOV']
@@ -183,6 +217,12 @@ if False:
     ret_target = row_region.iloc[0]['SOI_RET_Target']-Parcels_Dev['RET_NET'].sum()
 
 Parcels_Dev['EMP_NET']=Parcels_Dev['EDU_NET']+Parcels_Dev['FOO_NET']+Parcels_Dev['GOV_NET']+Parcels_Dev['IND_NET']+Parcels_Dev['MED_NET']+Parcels_Dev['OFC_NET']+Parcels_Dev['OTH_NET']+Parcels_Dev['RET_NET']+Parcels_Dev['AGR_NET']
+
+Parcels_Dev = Parcels_Dev[['parcelid', 'EDU_NET', 'FOO_NET','GOV_NET','IND_NET','MED_NET','OFC_NET','OTH_NET','RET_NET','AGR_NET','EMP_NET']]  # Keep new columns only
+
+Parcels_Dev = Parcels_Dev.merge(Parcels_Dev_HU, how = 'outer', on = 'parcelid') # merge EMP and HU growth allocation
+Parcels_Dev = Parcels_Dev.merge(pd.read_csv(os.path.join(outputDir, "parcels.csv")), how = 'left', on = 'parcelid')  # merge parcel csv to get other column back
+
 Parcels_Dev.to_csv(os.path.join(outputDir,"parcels_dev.csv"), index = False)
 
 
@@ -293,3 +333,4 @@ countyData.to_csv(os.path.join(popsimDir,"countyData.csv"), index = False)
 
 print('\r\n--- Script ran successfully! ---\r\n')
 print('End time '+str(datetime.now()))
+
