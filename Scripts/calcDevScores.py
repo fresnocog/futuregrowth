@@ -94,7 +94,7 @@ class DevScoreCalculator:
             # Merge with DevTypes and Forecast
             dev_types = pd.read_csv(os.path.join(self.data_dir, "DevTypes.csv"))
             parcels = parcels.merge(dev_types, how='left', on='DEVTYPE')
-            parcels = parcels.merge(forecast[['SOI', 'VacRate', 'HH_SIZE', 'SCHL_Factor']], how='left', on='SOI')
+            parcels = parcels.merge(forecast[['SOI', 'SOI_OccRate', 'HH_SIZE', 'SCHL_Factor']], how='left', on='SOI')
             
             # Adjust densities and calculate net growth possiblities
             parcels['HU_Den'] = parcels['HU_Den'] * (1 + self.config_params['adjResDen'])
@@ -187,16 +187,16 @@ class DevScoreCalculator:
             )
         
         # Apply infill penalty for vision year and beyond
-        if self.target_year >= self.VISION_YEAR:
-            parcels.loc[parcels['Infill'] == 0, 'TOTAL_SCORE'] *= (1 - self.config_params['penaltyInfill'])
-        
         # if self.target_year >= self.VISION_YEAR:
-        #     parcels.loc[(parcels['Infill'] == 0) & (parcels['SOI'] == 'Fresno'), 'TOTAL_SCORE'] *= (1 - self.config_params['penaltyInfill'])
+            # parcels.loc[parcels['Infill'] == 0, 'TOTAL_SCORE'] *= (1 - self.config_params['penaltyInfill'])
+        
+        if self.target_year >= self.VISION_YEAR:
+            parcels.loc[(parcels['Infill'] == 0) & (parcels['SOI'] == 'Fresno'), 'TOTAL_SCORE'] *= (1 - self.config_params['penaltyInfill'])
         
         
         # Filter final columns
         parcels = parcels[['parcelid', 'SOI', 'COMMUNITY', 'TAZ', 'HU_NET', 'EMP_NET', 
-                          'VacRate', 'HH_SIZE', 'BASE_SCORE', 'IDX_Bike', 'IDX_Transit', 
+                          'SOI_OccRate', 'HH_SIZE', 'BASE_SCORE', 'IDX_Bike', 'IDX_Transit', 
                           'IDX_SOV', 'TOTAL_SCORE']]
         logger.debug(f"Total score range: min={parcels['TOTAL_SCORE'].min()}, max={parcels['TOTAL_SCORE'].max()}")
         return parcels

@@ -110,11 +110,30 @@ class GrowthControlsBuilder:
             'HH_POP': 'sum', 'Base_HH': 'sum', 'Base_HU': 'sum', 'Base_EMP': 'sum',
             'Base_AGR': 'sum',  'Base_SCHL': 'sum'
             }) # 'Base_GQ': 'sum'
-        base_soi['VacRate'] = (base_soi['Base_HU'] - base_soi['Base_HH']) / base_soi['Base_HU']
+        
+        # read vacrate from the dempogrpahic forecast csv
+        demo_forecast = pd.read_csv(os.path.join(self.data_dir, "Demographic_Forecast.csv"))
+        demo_forecast_nonCounty = demo_forecast[(demo_forecast['YEAR'] == self.target_year) & (demo_forecast['SOI'] != 'Fresno County')]
+        demo_forecast_nonCounty = demo_forecast_nonCounty[['SOI', 'OccRate']]
+        demo_forecast_nonCounty['OccRate_target'] = demo_forecast_nonCounty['OccRate']
+        demo_forecast_nonCounty = demo_forecast_nonCounty[['SOI', 'OccRate_target']]
+        
+        base_soi = base_soi.merge(demo_forecast_nonCounty, on='SOI', how='left')
+        # base_soi['VacRate'] = (base_soi['Base_HU'] - base_soi['Base_HH']) / base_soi['Base_HU']
+        
+        demo_forecast_nonCounty = demo_forecast[(demo_forecast['YEAR'] == self.base_year) & (demo_forecast['SOI'] != 'Fresno County')]
+        demo_forecast_nonCounty = demo_forecast_nonCounty[['SOI', 'OccRate']]
+        demo_forecast_nonCounty['OccRate_base'] = demo_forecast_nonCounty['OccRate']
+        demo_forecast_nonCounty = demo_forecast_nonCounty[['SOI', 'OccRate_base']]
+        
+        base_soi = base_soi.merge(demo_forecast_nonCounty, on='SOI', how='left')
         
         # Add Fresno County totals
         hhsize_avg = base_soi['HH_POP'].sum() / base_soi['Base_HH'].sum()
-        vacrate_adj = (base_soi['Base_HU'].sum() - base_soi['Base_HH'].sum()) / base_soi['Base_HU'].sum()
+        OccRate_adj_target = demo_forecast[(demo_forecast['YEAR'] == self.target_year) & (demo_forecast['SOI'] == 'Fresno County')]['OccRate'].item()
+        OccRate_adj_base = demo_forecast[(demo_forecast['YEAR'] == self.base_year) & (demo_forecast['SOI'] == 'Fresno County')]['OccRate'].item()
+
+        # vacrate_adj = (base_soi['Base_HU'].sum() - base_soi['Base_HH'].sum()) / base_soi['Base_HU'].sum()
         fresno_row = pd.DataFrame([{
             'SOI': 'Fresno County',
             'Base_HU': base_soi['Base_HU'].sum(),
@@ -125,7 +144,8 @@ class GrowthControlsBuilder:
             'Base_HH': base_soi['Base_HH'].sum(),
             'HH_POP': base_soi['HH_POP'].sum(),
             'HH_SIZE': hhsize_avg,
-            'VacRate': vacrate_adj
+            'OccRate_target': OccRate_adj_target,
+            'OccRate_base': OccRate_adj_base,
         }])
         
         result = pd.concat([base_soi, fresno_row], ignore_index=True)
@@ -178,7 +198,8 @@ class GrowthControlsBuilder:
         adj_emp = 1 + self.config_params['adjEMP']
         
         forecast['SOI_HH_Target'] = adj_pop * (forecast['HH_TARGET'] - forecast['HH_BASE'])
-        forecast['SOI_HU_Target'] = forecast['SOI_HH_Target'] / (1 - forecast['VacRate'])
+        forecast['SOI_OccRate'] = forecast['SOI_HH_Target'] / ((forecast['HH_TARGET'] / forecast['OccRate_target']) - (forecast['HH_BASE'] / forecast['OccRate_base']))
+        forecast['SOI_HU_Target'] = forecast['SOI_HH_Target'] / forecast['SOI_OccRate']
         forecast['SOI_HHPOP_Target'] = adj_pop * (forecast['HHPOP_TARGET'] - forecast['HHPOP_BASE'])
         forecast['SOI_GQ_Target'] = adj_pop * (forecast['GQPOP_TARGET'] - forecast['GQPOP_BASE'])
         forecast['SOI_SCHL_Target'] = adj_pop * (forecast['SCHL_TARGET'] - forecast['SCHL_BASE'])

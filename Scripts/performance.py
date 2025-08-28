@@ -76,8 +76,8 @@ class PerformanceIndicatorCalculator:
         dev_table = dev_table.filter(items=['parcelid', 'DEV'])
         dev_table = dev_table[dev_table['DEV'] <= self.target_year]
         dev_table = dev_table.merge(pd.read_csv(os.path.join(self.output_dir, "parcels.csv")), how='left', on='parcelid')
-        hu_tot_dev = dev_table['HU_NET'].sum()
-        emp_tot_dev = dev_table['EMP_NET'].sum()
+        hu_tot_dev = (dev_table['HU_NET'] + dev_table['HU']).sum()
+        emp_tot_dev = (dev_table['EMP_NET'] + dev_table['EMP']).sum()
         
         # Total acres developed
         acres_tot = (dev_table['Vacant'] * dev_table['ACRES'] * dev_table['PLANNED']).sum()
@@ -107,7 +107,7 @@ class PerformanceIndicatorCalculator:
         
         # Fresno infill percentage
         dev_table_fresno = dev_table[dev_table['SOI'] == 'Fresno']
-        dev_table_notfresno = dev_table[dev_table['SOI'] != 'Fresno']
+        dev_table_notfresno = dev_table[(dev_table['SOI'] != 'Fresno') & (dev_table['SOI'] != "Unincorporate")]
         hu_tot_fresno = dev_table_fresno['HU_NET'].sum()
         hu_tot_notfresno = dev_table_notfresno['HU_NET'].sum()
         pm_infill = dev_table_fresno[dev_table_fresno['Infill'] == 0]['HU_NET'].sum() / hu_tot_fresno if hu_tot_fresno > 0 else 0

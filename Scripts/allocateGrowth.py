@@ -147,7 +147,7 @@ class LandUseAllocator:
         logger.info("Calculating parcel growth values")
         parcels_dev = dev_table[['parcelid']].merge(pd.read_csv(os.path.join(self.output_dir, "parcels.csv")), how='left', on='parcelid')
         
-        parcels_dev['HH_NET'] = parcels_dev['HU_NET'] * (1 - parcels_dev['VacRate'])
+        parcels_dev['HH_NET'] = parcels_dev['HU_NET'] * (parcels_dev['SOI_OccRate'])
         parcels_dev['POP_NET'] = parcels_dev['HH_NET'] * parcels_dev['HH_SIZE']
         parcels_dev['HU_SF_NET'] = parcels_dev['ACRES'] * parcels_dev['HU_Den'] * parcels_dev['HU_SF_P'] - parcels_dev['HU_SF']
         parcels_dev['HU_MF_NET'] = parcels_dev['ACRES'] * parcels_dev['HU_Den'] * parcels_dev['HU_MF_P'] - parcels_dev['HU_MF']
