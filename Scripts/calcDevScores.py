@@ -3,6 +3,8 @@
 Created on Thu Mar 13 16:41:42 2025
 
 @author: joshi
+
+Modified on 8/21/2025: lines with comment #new
 """
 
 from datetime import datetime
@@ -151,9 +153,9 @@ class DevScoreCalculator:
         """Merge skim results into parcels."""
         logger.info("Merging skim results")
         try:
-            skims_maz = pd.read_csv(os.path.join(self.output_dir, "skims_maz.csv"))[['MAZ', 'IDX_Bike']]
+            skims_maz = pd.read_csv(os.path.join(self.output_dir, "skims_maz.csv"))[['MAZ', 'IDX_Bike', 'IDX_Bike_emp']] #new
             parcels = parcels.merge(skims_maz, how='left', on='MAZ')
-            skims_taz = pd.read_csv(os.path.join(self.output_dir, "skims_taz.csv"))[['TAZ', 'IDX_Transit', 'IDX_SOV']]
+            skims_taz = pd.read_csv(os.path.join(self.output_dir, "skims_taz.csv"))[['TAZ', 'IDX_Transit', 'IDX_SOV', 'IDX_Transit_emp', 'IDX_SOV_emp']] #new
             parcels = parcels.merge(skims_taz, how='left', on='TAZ')
             logger.debug(f"Parcels after skim merge: {parcels.shape}")
             return parcels
@@ -171,6 +173,13 @@ class DevScoreCalculator:
             parcels['IDX_SOV'] * self.config_params['wtSOV']
             )
         
+        parcels['TOTAL_SCORE_emp'] = ( 
+            parcels['BASE_SCORE'] + 
+            parcels['IDX_Bike_emp'] * self.config_params['wtBike'] + 
+            parcels['IDX_Transit_emp'] * self.config_params['wtTransit'] + 
+            parcels['IDX_SOV_emp'] * self.config_params['wtSOV']
+            ) #new
+        
         # Apply geometric adjustments
         parcels['TOTAL_SCORE'] = (
             parcels['TOTAL_SCORE'] * parcels['SCORE_ADJ'] *                 # General score adjustment factor
@@ -181,10 +190,23 @@ class DevScoreCalculator:
             (1 + self.config_params['adjDT'] * parcels['DT'])                   #Boost for DT parcels
             )
         
+        parcels['TOTAL_SCORE_emp'] = (
+            parcels['TOTAL_SCORE_emp'] * parcels['SCORE_ADJ'] *                 # General score adjustment factor
+            (1 - self.config_params['penaltyRedev'] * parcels['Developed']) *  # Penalty for redeveloping parcels
+            (1 + self.config_params['adjSF'] * parcels['IDX_SF']) *            # Boost for single-family potential
+            (1 + self.config_params['adjMU'] * parcels['IDX_MU']) *             # Boost for mixed-use potential
+            (1 + self.config_params['adjTOD'] * parcels['TOD']) *                   # Boost for TOD development
+            (1 + self.config_params['adjDT'] * parcels['DT'])                   #Boost for DT parcels
+            ) #new
+        
         # Apply density penalty for residential density
         parcels.loc[parcels['HU_Den'] > 0, 'TOTAL_SCORE'] *= (
             1 - self.config_params['penaltyDensity'] * parcels['IDX_Den']
             )
+        
+        parcels.loc[parcels['EMP_Den'] > 0, 'TOTAL_SCORE_emp'] *= (
+            1 - self.config_params['penaltyDensity'] * parcels['IDX_Den']
+            ) #new
         
         # Apply infill penalty for vision year and beyond
         # if self.target_year >= self.VISION_YEAR:
@@ -192,13 +214,18 @@ class DevScoreCalculator:
         
         if self.target_year >= self.VISION_YEAR:
             parcels.loc[(parcels['Infill'] == 0) & (parcels['SOI'] == 'Fresno'), 'TOTAL_SCORE'] *= (1 - self.config_params['penaltyInfill'])
+
+        if self.target_year >= self.VISION_YEAR:
+            parcels.loc[(parcels['Infill'] == 0) & (parcels['SOI'] == 'Fresno'), 'TOTAL_SCORE_emp'] *= (1 - self.config_params['penaltyInfill'])
         
         
         # Filter final columns
         parcels = parcels[['parcelid', 'SOI', 'COMMUNITY', 'TAZ', 'HU_NET', 'EMP_NET', 
                           'SOI_OccRate', 'HH_SIZE', 'BASE_SCORE', 'IDX_Bike', 'IDX_Transit', 
-                          'IDX_SOV', 'TOTAL_SCORE']]
+                          'IDX_SOV', 'TOTAL_SCORE','IDX_Bike_emp', 'IDX_Transit_emp', 
+                          'IDX_SOV_emp', 'TOTAL_SCORE_emp']] #new
         logger.debug(f"Total score range: min={parcels['TOTAL_SCORE'].min()}, max={parcels['TOTAL_SCORE'].max()}")
+        logger.debug(f"Total score emp range: min={parcels['TOTAL_SCORE_emp'].min()}, max={parcels['TOTAL_SCORE_emp'].max()}") #new
         return parcels
     
     def create_dev_table(self, parcels: pd.DataFrame, cube_growth: pd.DataFrame, forecast: pd.DataFrame) -> pd.DataFrame:
@@ -209,19 +236,20 @@ class DevScoreCalculator:
         if not self.keep_devtable:
             dev_table = parcels.merge(cube_growth, how='left', on='TAZ')
             dev_table = dev_table[[
-                'parcelid', 'SOI', 'COMMUNITY', 'TAZ', 'HU_NET', 'EMP_NET', 'TOTAL_SCORE',
+                'parcelid', 'SOI', 'COMMUNITY', 'TAZ', 'HU_NET', 'EMP_NET', 'TOTAL_SCORE', 'TOTAL_SCORE_emp',
                 'TAZ_HU_Target', 'TAZ_EMP_Target', 'SOI_HU_P', 'SOI_EMP_P'
                 ]]
             dev_table['DEV'] = self.NO_DEV
+            dev_table['DEV_emp'] = self.NO_DEV #new
             dev_table['DEV_TAZ'] = 0
             dev_table['DEV_SOI'] = 0
         else:
             dev_table = pd.read_csv(os.path.join(self.output_dir, "devtable.csv"))
-            dev_table = dev_table.drop(columns=['TOTAL_SCORE', 'SOI_HU_Target', 'SOI_EMP_Target'], errors='ignore')
-            dev_table = dev_table.merge(parcels[['parcelid', 'TOTAL_SCORE']], how='left', on='parcelid')
+            dev_table = dev_table.drop(columns=['TOTAL_SCORE', 'TOTAL_SCORE_emp', 'SOI_HU_Target', 'SOI_EMP_Target'], errors='ignore') #new
+            dev_table = dev_table.merge(parcels[['parcelid', 'TOTAL_SCORE', 'TOTAL_SCORE_emp']], how='left', on='parcelid') #new
         
         dev_table = dev_table.merge(forecast_dev, how='left', on='SOI')
-        dev_table = dev_table.sort_values(by=['TAZ', 'TOTAL_SCORE'], ascending=['True', 'False']).reset_index(drop=True)
+        dev_table = dev_table.sort_values(by=['TAZ', 'TOTAL_SCORE', 'TOTAL_SCORE_emp'], ascending=['True', 'False', 'False']).reset_index(drop=True) #new
         logger.debug(f"Development table shape: {dev_table.shape}")
         return dev_table
     

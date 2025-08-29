@@ -3,6 +3,8 @@
 Created on Mon Mar 17 12:58:33 2025
 
 @author: joshi
+
+Modified on 8/25/2025: lines with comment #new
 """
 
 from datetime import datetime
@@ -99,71 +101,144 @@ class LandUseAllocator:
     def run_agency_allocation(self, dev_table: pd.DataFrame) -> tuple:
         """Run agency-level (SOI and COMMUNITY) allocation."""
         logger.info("Running agency allocation.")
-        dev_table = dev_table.sort_values(by=['SOI', 'COMMUNITY', 'TOTAL_SCORE'], ascending=[True, True, False]).reset_index(drop=True)
+        dev_table_hu = dev_table[dev_table['HU_NET']>0].sort_values(by=['SOI', 'COMMUNITY', 'TOTAL_SCORE'], ascending=[True, True, False]).reset_index(drop=True) #new
+        dev_table_emp = dev_table[dev_table['EMP_NET']>0].sort_values(by=['SOI', 'COMMUNITY', 'TOTAL_SCORE_emp'], ascending=[True, True, False]).reset_index(drop=True) #new
         dev_years = dev_table.groupby('DEV', as_index = False).agg({'HU_NET': 'sum', 'EMP_NET': 'sum'})
         next_year = dev_years[dev_years['DEV'] > self.target_year]['DEV'].min()
         logger.info(f"Sampling growth from year {next_year}")
         
         cycle = 0
         while cycle < 1:
-            dev_soi = dev_table[dev_table['DEV'] <= self.target_year].groupby('SOI').agg({'HU_NET': 'sum', 'EMP_NET': 'sum'}).reset_index()
-            dev_community = dev_table[dev_table['DEV'] <= self.target_year].groupby('COMMUNITY').agg({'HU_NET': 'sum', 'EMP_NET': 'sum'}).reset_index()
-            dev_taz_soi = dev_table.groupby('SOI').agg({'SOI_HU_Target': 'first', 'SOI_EMP_Target': 'first'}).reset_index().merge(dev_soi, how='left', on='SOI').fillna(0)
-            dev_taz_community = dev_table.groupby('COMMUNITY').agg({'SOI_HU_Target': 'first', 'SOI_EMP_Target': 'first', 'SOI_HU_P': 'first', 'SOI_EMP_P': 'first'}).reset_index().merge(dev_community, how='left', on='COMMUNITY')
+            dev_soi = dev_table_hu[dev_table_hu['DEV'] <= self.target_year].groupby('SOI').agg({'HU_NET': 'sum', 'EMP_NET': 'sum'}).reset_index()
+            dev_community = dev_table_hu[dev_table_hu['DEV'] <= self.target_year].groupby('COMMUNITY').agg({'HU_NET': 'sum', 'EMP_NET': 'sum'}).reset_index()
+            dev_taz_soi = dev_table_hu.groupby('SOI').agg({'SOI_HU_Target': 'first', 'SOI_EMP_Target': 'first'}).reset_index().merge(dev_soi, how='left', on='SOI').fillna(0)
+            dev_taz_community = dev_table_hu.groupby('COMMUNITY').agg({'SOI_HU_Target': 'first', 'SOI_EMP_Target': 'first', 'SOI_HU_P': 'first', 'SOI_EMP_P': 'first'}).reset_index().merge(dev_community, how='left', on='COMMUNITY')
             
             soi, community, soi_hu, soi_emp, soi_hu_target, soi_emp_target = '', '', 0, 0, 0, 0
-            for i in range(len(dev_table)):
-                row = dev_table.iloc[i]
+            for i in range(len(dev_table_hu)):
+                row = dev_table_hu.iloc[i]
                 if soi != row['SOI']:
                     soi = row['SOI']
                     soi_hu, soi_emp = 0, 0
                     soi_hu_target = row['SOI_HU_Target'] - dev_taz_soi.loc[dev_taz_soi['SOI'] == soi]['HU_NET'].sum()
-                    soi_emp_target = row['SOI_EMP_Target'] - dev_taz_soi[dev_taz_soi['SOI'] == soi]['EMP_NET'].sum()
+                    # soi_emp_target = row['SOI_EMP_Target'] - dev_taz_soi[dev_taz_soi['SOI'] == soi]['EMP_NET'].sum() #new
                     
                 if soi == 'Unincorporate' and row['COMMUNITY'] and community != row['COMMUNITY']:
                     community = row['COMMUNITY']
                     soi_hu, soi_emp = 0, 0
                     soi_hu_target = row['SOI_HU_P'] * (row['SOI_HU_Target'] - dev_taz_soi.loc[dev_taz_soi['SOI'] == soi, 'HU_NET'].sum())
-                    soi_emp_target = row['SOI_EMP_P'] * (row['SOI_EMP_Target'] - dev_taz_soi.loc[dev_taz_soi['SOI'] == soi, 'EMP_NET'].sum())
+                    # soi_emp_target = row['SOI_EMP_P'] * (row['SOI_EMP_Target'] - dev_taz_soi.loc[dev_taz_soi['SOI'] == soi, 'EMP_NET'].sum()) #new
                     
-                if (soi != 'Unincoirporate' or community) and row['DEV'] == next_year and ((soi_hu + row['HU_NET']) <= max(soi_hu_target, 0)) and ((soi_emp + row['EMP_NET']) <= max(soi_emp_target, 0)):
-                            dev_table.at[i, 'DEV'] = self.target_year
-                            dev_table.at[i, 'DEV_SOI'] = 1
+                if (soi != 'Unincoirporate' or community) and row['DEV'] == next_year and ((soi_hu + row['HU_NET']) <= max(soi_hu_target, 0)): # and ((soi_emp + row['EMP_NET']) <= max(soi_emp_target, 0)): #new
+                            dev_table_hu.at[i, 'DEV'] = self.target_year
+                            dev_table_hu.at[i, 'DEV_SOI'] = 1
                             soi_hu += row['HU_NET']
+                            #soi_emp += row['EMP_NET'] #new
+            cycle =+ 1
+        
+        #new 
+        cycle = 0
+        while cycle < 1:
+            dev_soi = dev_table_emp[dev_table_emp['DEV_emp'] <= self.target_year].groupby('SOI').agg({'HU_NET': 'sum', 'EMP_NET': 'sum'}).reset_index()
+            dev_community = dev_table_emp[dev_table_emp['DEV_emp'] <= self.target_year].groupby('COMMUNITY').agg({'HU_NET': 'sum', 'EMP_NET': 'sum'}).reset_index()
+            dev_taz_soi = dev_table_emp.groupby('SOI').agg({'SOI_HU_Target': 'first', 'SOI_EMP_Target': 'first'}).reset_index().merge(dev_soi, how='left', on='SOI').fillna(0)
+            dev_taz_community = dev_table_emp.groupby('COMMUNITY').agg({'SOI_HU_Target': 'first', 'SOI_EMP_Target': 'first', 'SOI_HU_P': 'first', 'SOI_EMP_P': 'first'}).reset_index().merge(dev_community, how='left', on='COMMUNITY')
+            
+            soi, community, soi_hu, soi_emp, soi_hu_target, soi_emp_target = '', '', 0, 0, 0, 0
+            for i in range(len(dev_table_emp)):
+                row = dev_table_emp.iloc[i]
+                if soi != row['SOI']:
+                    soi = row['SOI']
+                    soi_hu, soi_emp = 0, 0
+                    # soi_hu_target = row['SOI_HU_Target'] - dev_taz_soi.loc[dev_taz_soi['SOI'] == soi]['HU_NET'].sum()
+                    soi_emp_target = row['SOI_EMP_Target'] - dev_taz_soi[dev_taz_soi['SOI'] == soi]['EMP_NET'].sum() #new
+                    
+                if soi == 'Unincorporate' and row['COMMUNITY'] and community != row['COMMUNITY']:
+                    community = row['COMMUNITY']
+                    soi_hu, soi_emp = 0, 0
+                    # soi_hu_target = row['SOI_HU_P'] * (row['SOI_HU_Target'] - dev_taz_soi.loc[dev_taz_soi['SOI'] == soi, 'HU_NET'].sum())
+                    soi_emp_target = row['SOI_EMP_P'] * (row['SOI_EMP_Target'] - dev_taz_soi.loc[dev_taz_soi['SOI'] == soi, 'EMP_NET'].sum()) #new
+                    
+                if (soi != 'Unincoirporate' or community) and row['DEV_emp'] == next_year and ((soi_emp + row['EMP_NET']) <= max(soi_emp_target, 0)): # and ((soi_hu + row['HU_NET']) <= max(soi_hu_target, 0)):
+                            dev_table_emp.at[i, 'DEV_emp'] = self.target_year
+                            dev_table_emp.at[i, 'DEV_SOI'] = 1
+                            # soi_hu += row['HU_NET']
                             soi_emp += row['EMP_NET']
             cycle =+ 1
             
-        dev_table.to_csv(os.path.join(self.output_dir, "devtable.csv"), index=False)
-        dev_table_final = dev_table[dev_table['DEV'] <= self.target_year]
-        dev_soi = dev_table_final.groupby('SOI').agg({'HU_NET': 'sum', 'SOI_HU_Target': 'first', 'EMP_NET': 'sum', 'SOI_EMP_Target': 'first'}).reset_index()
-        dev_community = dev_table_final[dev_table_final['SOI'] == 'Unincorporate'].groupby('COMMUNITY').agg({'HU_NET': 'sum', 'SOI_HU_Target': 'first', 'EMP_NET': 'sum', 'SOI_EMP_Target': 'first'}).reset_index()
-        logger.info("Agency allocation complete")
-        logger.debug(f"SOI allocation results:\n{dev_soi.to_string()}")
-        logger.debug(f"Community allocation results:\n{dev_community.to_string()}")
-        return dev_table_final, dev_soi, dev_community
+        dev_table_hu.to_csv(os.path.join(self.output_dir, "devtable_hu.csv"), index=False) #new
+        dev_table_emp.to_csv(os.path.join(self.output_dir, "devtable_emp.csv"), index=False) #new
+
+        #update original dev table with new DEV flag
+        dev_table.set_index("parcelid", inplace = True) #new
+        dev_table_hu.set_index("parcelid", inplace = True) #new
+        dev_table_emp.set_index("parcelid", inplace = True) #new
+
+        dev_table.update(dev_table_hu[['DEV']]) #new
+        dev_table.update(dev_table_emp[['DEV_emp']]) #new
+
+        dev_table.reset_index(inplace=True) #new
+        dev_table_hu.reset_index(inplace=True) #new
+        dev_table_emp.reset_index(inplace=True) #new
+
+        dev_table.to_csv(os.path.join(self.output_dir, "devtable.csv"), index=False) #new
+
+        # dev_table_final = dev_table[dev_table['DEV'] <= self.target_year]
+        # dev_soi = dev_table_final.groupby('SOI').agg({'HU_NET': 'sum', 'SOI_HU_Target': 'first', 'EMP_NET': 'sum', 'SOI_EMP_Target': 'first'}).reset_index()
+        # dev_community = dev_table_final[dev_table_final['SOI'] == 'Unincorporate'].groupby('COMMUNITY').agg({'HU_NET': 'sum', 'SOI_HU_Target': 'first', 'EMP_NET': 'sum', 'SOI_EMP_Target': 'first'}).reset_index()
+        # logger.info("Agency allocation complete")
+        # logger.debug(f"SOI allocation results:\n{dev_soi.to_string()}")
+        # logger.debug(f"Community allocation results:\n{dev_community.to_string()}")
+        # return dev_table_final, dev_soi, dev_community
     
-    def calculate_parcel_growth(self, dev_table: pd.DataFrame) -> pd.DataFrame:
+        dev_table_final_hu = dev_table_hu[dev_table_hu['DEV'] <= self.target_year]
+        dev_soi_hu = dev_table_final_hu.groupby('SOI').agg({'HU_NET': 'sum', 'SOI_HU_Target': 'first'}).reset_index()
+        dev_community_hu = dev_table_final_hu[dev_table_final_hu['SOI'] == 'Unincorporate'].groupby('COMMUNITY').agg({'HU_NET': 'sum', 'SOI_HU_Target': 'first'}).reset_index()
+        logger.info("Agency hu allocation complete")
+        logger.debug(f"SOI allocation results:\n{dev_soi_hu.to_string()}")
+        logger.debug(f"Community allocation results:\n{dev_community_hu.to_string()}")
+        # return dev_table_final, dev_soi, dev_community
+    
+        dev_table_final_emp = dev_table_emp[dev_table_emp['DEV_emp'] <= self.target_year]
+        dev_soi_emp = dev_table_final_emp.groupby('SOI').agg({'EMP_NET': 'sum', 'SOI_EMP_Target': 'first'}).reset_index()
+        dev_community_emp = dev_table_final_emp[dev_table_final_emp['SOI'] == 'Unincorporate'].groupby('COMMUNITY').agg({'EMP_NET': 'sum', 'SOI_EMP_Target': 'first'}).reset_index()
+        logger.info("Agency allocation complete")
+        logger.debug(f"SOI allocation results:\n{dev_soi_emp.to_string()}")
+        logger.debug(f"Community allocation results:\n{dev_community_emp.to_string()}")
+        return dev_table_final_hu, dev_soi_hu, dev_community_hu, dev_table_final_emp, dev_soi_emp, dev_community_emp
+    
+    def calculate_parcel_growth(self, dev_table_final_hu: pd.DataFrame, dev_table_final_emp: pd.DataFrame) -> pd.DataFrame:
         """Calculate parcel-level growth values."""
         logger.info("Calculating parcel growth values")
-        parcels_dev = dev_table[['parcelid']].merge(pd.read_csv(os.path.join(self.output_dir, "parcels.csv")), how='left', on='parcelid')
+        parcels_dev_hu = dev_table_final_hu[['parcelid']].merge(pd.read_csv(os.path.join(self.output_dir, "parcels.csv")), how='left', on='parcelid')
+        parcels_dev_emp = dev_table_final_emp[['parcelid']].merge(pd.read_csv(os.path.join(self.output_dir, "parcels.csv")), how='left', on='parcelid')
         
-        parcels_dev['HH_NET'] = parcels_dev['HU_NET'] * (parcels_dev['SOI_OccRate'])
-        parcels_dev['POP_NET'] = parcels_dev['HH_NET'] * parcels_dev['HH_SIZE']
-        parcels_dev['HU_SF_NET'] = parcels_dev['ACRES'] * parcels_dev['HU_Den'] * parcels_dev['HU_SF_P'] - parcels_dev['HU_SF']
-        parcels_dev['HU_MF_NET'] = parcels_dev['ACRES'] * parcels_dev['HU_Den'] * parcels_dev['HU_MF_P'] - parcels_dev['HU_MF']
-        parcels_dev['HU_OTH_NET'] = parcels_dev['ACRES'] * parcels_dev['HU_Den'] * parcels_dev['HU_OTH_P'] - parcels_dev['HU_OTH']
-        parcels_dev['EDU_NET'] = parcels_dev['ACRES'] * parcels_dev['EMP_Den'] * parcels_dev['EDU_P'] - parcels_dev['EMP_EDU']
-        parcels_dev['FOO_NET'] = parcels_dev['ACRES'] * parcels_dev['EMP_Den'] * parcels_dev['FOO_P'] - parcels_dev['EMP_FOO']
-        parcels_dev['GOV_NET'] = parcels_dev['ACRES'] * parcels_dev['EMP_Den'] * parcels_dev['GOV_P'] - parcels_dev['EMP_GOV']
-        parcels_dev['IND_NET'] = parcels_dev['ACRES'] * parcels_dev['EMP_Den'] * parcels_dev['IND_P'] - parcels_dev['EMP_IND']
-        parcels_dev['MED_NET'] = parcels_dev['ACRES'] * parcels_dev['EMP_Den'] * parcels_dev['MED_P'] - parcels_dev['EMP_MED']
-        parcels_dev['OFC_NET'] = parcels_dev['ACRES'] * parcels_dev['EMP_Den'] * parcels_dev['OFC_P'] - parcels_dev['EMP_OFC']
-        parcels_dev['OTH_NET'] = parcels_dev['ACRES'] * parcels_dev['EMP_Den'] * parcels_dev['OTH_P'] - parcels_dev['EMP_OTH']
-        parcels_dev['RET_NET'] = parcels_dev['ACRES'] * parcels_dev['EMP_Den'] * parcels_dev['RET_P'] - parcels_dev['EMP_RET']
-        parcels_dev['AGR_NET'] = -parcels_dev['EMP_AGR']
-        parcels_dev['EMP_NET'] = (parcels_dev['EDU_NET'] + parcels_dev['FOO_NET'] + parcels_dev['GOV_NET'] + 
-                                  parcels_dev['IND_NET'] + parcels_dev['MED_NET'] + parcels_dev['OFC_NET'] + 
-                                  parcels_dev['OTH_NET'] + parcels_dev['RET_NET'] + parcels_dev['AGR_NET'])
+        parcels_dev_hu['HH_NET'] = parcels_dev_hu['HU_NET'] * (parcels_dev_hu['SOI_OccRate'])
+        parcels_dev_hu['POP_NET'] = parcels_dev_hu['HH_NET'] * parcels_dev_hu['HH_SIZE']
+        parcels_dev_hu['HU_SF_NET'] = parcels_dev_hu['ACRES'] * parcels_dev_hu['HU_Den'] * parcels_dev_hu['HU_SF_P'] - parcels_dev_hu['HU_SF']
+        parcels_dev_hu['HU_MF_NET'] = parcels_dev_hu['ACRES'] * parcels_dev_hu['HU_Den'] * parcels_dev_hu['HU_MF_P'] - parcels_dev_hu['HU_MF']
+        parcels_dev_hu['HU_OTH_NET'] = parcels_dev_hu['ACRES'] * parcels_dev_hu['HU_Den'] * parcels_dev_hu['HU_OTH_P'] - parcels_dev_hu['HU_OTH']
+
+        parcels_dev_hu = parcels_dev_hu[['parcelid', 'HH_NET', 'POP_NET', 'HU_SF_NET', 'HU_MF_NET', 'HU_OTH_NET']]
+
+        parcels_dev_emp['EDU_NET'] = parcels_dev_emp['ACRES'] * parcels_dev_emp['EMP_Den'] * parcels_dev_emp['EDU_P'] - parcels_dev_emp['EMP_EDU']
+        parcels_dev_emp['FOO_NET'] = parcels_dev_emp['ACRES'] * parcels_dev_emp['EMP_Den'] * parcels_dev_emp['FOO_P'] - parcels_dev_emp['EMP_FOO']
+        parcels_dev_emp['GOV_NET'] = parcels_dev_emp['ACRES'] * parcels_dev_emp['EMP_Den'] * parcels_dev_emp['GOV_P'] - parcels_dev_emp['EMP_GOV']
+        parcels_dev_emp['IND_NET'] = parcels_dev_emp['ACRES'] * parcels_dev_emp['EMP_Den'] * parcels_dev_emp['IND_P'] - parcels_dev_emp['EMP_IND']
+        parcels_dev_emp['MED_NET'] = parcels_dev_emp['ACRES'] * parcels_dev_emp['EMP_Den'] * parcels_dev_emp['MED_P'] - parcels_dev_emp['EMP_MED']
+        parcels_dev_emp['OFC_NET'] = parcels_dev_emp['ACRES'] * parcels_dev_emp['EMP_Den'] * parcels_dev_emp['OFC_P'] - parcels_dev_emp['EMP_OFC']
+        parcels_dev_emp['OTH_NET'] = parcels_dev_emp['ACRES'] * parcels_dev_emp['EMP_Den'] * parcels_dev_emp['OTH_P'] - parcels_dev_emp['EMP_OTH']
+        parcels_dev_emp['RET_NET'] = parcels_dev_emp['ACRES'] * parcels_dev_emp['EMP_Den'] * parcels_dev_emp['RET_P'] - parcels_dev_emp['EMP_RET']
+        parcels_dev_emp['AGR_NET'] = -parcels_dev_emp['EMP_AGR']
+        parcels_dev_emp['EMP_NET'] = (parcels_dev_emp['EDU_NET'] + parcels_dev_emp['FOO_NET'] + parcels_dev_emp['GOV_NET'] + 
+                                  parcels_dev_emp['IND_NET'] + parcels_dev_emp['MED_NET'] + parcels_dev_emp['OFC_NET'] + 
+                                  parcels_dev_emp['OTH_NET'] + parcels_dev_emp['RET_NET'] + parcels_dev_emp['AGR_NET'])
+        
+        parcels_dev_emp = parcels_dev_emp[['parcelid', 'EDU_NET', 'FOO_NET', 'GOV_NET', 'IND_NET', 'MED_NET', 'OFC_NET' , 'OTH_NET', 'RET_NET', 'AGR_NET' ]]
+
+        parcels_dev = pd.merge(parcels_dev_hu, parcels_dev_emp, on='parcelid', how='outer')
+
+        parcels_dev = parcels_dev.merge(pd.read_csv(os.path.join(self.output_dir, "parcels.csv")), how='left', on='parcelid')
         
         parcels_dev.to_csv(os.path.join(self.output_dir, "parcels_dev.csv"), index=False)
         logger.debug(f"Parcel growth calculated: {parcels_dev.shape}")
@@ -298,10 +373,10 @@ def main():
         
         # Run allocations
         dev_table = allocator.run_cube_allocation(dev_table)
-        dev_table_final, dev_soi, dev_community = allocator.run_agency_allocation(dev_table)
+        dev_table_final_hu, dev_soi_hu, dev_community_hu, dev_table_final_emp, dev_soi_emp, dev_community_emp = allocator.run_agency_allocation(dev_table)
         
         # Calculate parcel growth
-        parcels_dev = allocator.calculate_parcel_growth(dev_table_final)
+        parcels_dev = allocator.calculate_parcel_growth(dev_table_final_hu, dev_table_final_emp)
         
         # Generate new base files
         maz_new, taz_new = allocator.generate_new_base_files(base_maz, parcels_dev, forecast, gq_factor, agr_factor)

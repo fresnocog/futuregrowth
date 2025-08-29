@@ -3,6 +3,8 @@
 Created on Thu Mar 13 08:33:32 2025
 
 @author: joshi
+
+Modified on 8/20/2025: lines with comment #new
 """
 
 from datetime import datetime
@@ -60,18 +62,23 @@ class SkimProcessor:
         logger.info("Processing MAZ bike skims")
         maz_skims = self.base_maz[['MAZ', 'TAZ', 'SOI']]
         emp_array_maz = self.base_maz['Base_EMP'].to_numpy()
+        hu_array_maz = self.base_maz['Base_HU'].to_numpy() #new
         
         # Calculate bike accessibility
         maz_skims['bike_skim'] = 0.0
+        maz_skims['bike_skim_emp'] = 0.0 #new
         try:
             with omx.open_file(os.path.join(self.abm_dir, f"FC{str(self.base_year)[-2:]}_BASE_MAZ_SKM_BIKE.omx")) as bike_skim_omx:
                 bike_skims = bike_skim_omx['TIME_BIKE'] #['DIST_BIKE']
                 for i in maz_skims.index:
                     row = bike_skims[i]
-                    mask = ma.masked_where(row <= 5, row).mask  # Distance <= 5 miles (`30 min by bike)
+                    mask = ma.masked_where(row <= 30, row).mask  # Distance <= 5 miles (`30 min by bike) #new corrected 5 to 30 to reflect time
                     mask1 = ma.masked_where(row > 0, row).mask
                     skim_val = (mask1 * mask * emp_array_maz).sum()
                     maz_skims.at[i, 'bike_skim'] = skim_val + emp_array_maz[i]
+                    
+                    skim_val_emp = (mask1 * mask * hu_array_maz).sum() #new
+                    maz_skims.at[i, 'bike_skim_emp'] = skim_val_emp + hu_array_maz[i] #new
         except Exception as e:
             logger.error(f"Error processing bike skims: {str(e)}")
             raise
@@ -81,7 +88,13 @@ class SkimProcessor:
         maz_skims['IDX_Bike'] = 0.0 
         valid_bike = maz_skims['bike_skim'] > 0
         maz_skims.loc[valid_bike, 'IDX_Bike'] = maz_skims[valid_bike]['bike_skim'].rank(pct=True)
+
+        maz_skims['IDX_Bike_emp'] = 0.0 #new
+        valid_bike_emp = maz_skims['bike_skim_emp'] > 0 #new
+        maz_skims.loc[valid_bike_emp, 'IDX_Bike_emp'] = maz_skims[valid_bike_emp]['bike_skim_emp'].rank(pct=True) #new
+
         logger.debug(f"Bike skim range: min={maz_skims['bike_skim'].min()}, max={maz_skims['bike_skim'].max()}")
+        logger.debug(f"Bike skim emp range: min={maz_skims['bike_skim_emp'].min()}, max={maz_skims['bike_skim_emp'].max()}") #new
         
         return maz_skims
     
@@ -90,13 +103,16 @@ class SkimProcessor:
         logger.info("Processing TAZ Skims")
         taz_skims = pd.DataFrame(list(range(1, 3001)), columns=['TAZ'])
         taz_skims = taz_skims.merge(
-            self.base_maz.groupby('TAZ').agg({'SOI': 'first', 'Base_EMP': 'sum'}),
+            self.base_maz.groupby('TAZ').agg({'SOI': 'first', 'Base_EMP': 'sum', 'Base_HU': 'sum'}),
             how='left',
             on='TAZ'
         )
         taz_skims['SOI'] = taz_skims['SOI'].fillna("")
         taz_skims['Base_EMP'] = taz_skims['Base_EMP'].fillna(0)
         emp_array_taz = taz_skims['Base_EMP'].to_numpy()
+
+        taz_skims['Base_HU'] = taz_skims['Base_HU'].fillna(0) #new
+        hu_array_taz = taz_skims['Base_HU'].to_numpy() #new
         
         # Calcualte transit accessibility
         try:
@@ -111,6 +127,10 @@ class SkimProcessor:
                     mask1 = ma.masked_where(row > 0, row).mask
                     skim_val = (mask * mask1 * emp_array_taz).sum()
                     taz_skims.at[i, 'transit_skim'] = skim_val
+
+                    skim_val_emp = (mask * mask1 * hu_array_taz).sum() #new
+                    taz_skims.at[i, 'transit_skim_emp'] = skim_val_emp #new
+
         except Exception as e:
             logger.error(f"Error processing transit skims: {str(e)}")
             raise
@@ -120,10 +140,17 @@ class SkimProcessor:
         taz_skims['IDX_Transit'] = 0.0
         valid_transit = taz_skims['transit_skim'] > 0
         taz_skims.loc[valid_transit, 'IDX_Transit'] = taz_skims[valid_transit]['transit_skim'].rank(pct=True)
+
+        taz_skims['IDX_Transit_emp'] = 0.0 #new
+        valid_transit_emp = taz_skims['transit_skim_emp'] > 0 #new
+        taz_skims.loc[valid_transit_emp, 'IDX_Transit_emp'] = taz_skims[valid_transit_emp]['transit_skim_emp'].rank(pct=True) #new
+
         logger.debug(f"Transit skim range: min={taz_skims['transit_skim'].min()}, max={taz_skims['transit_skim'].max()}")
+        logger.debug(f"Transit skim emp range: min={taz_skims['transit_skim_emp'].min()}, max={taz_skims['transit_skim_emp'].max()}") #new
         
         # Calculating SOV accessibility
         taz_skims['sov_skim'] = 0.0
+        taz_skims['sov_skim_emp'] = 0.0 #new
         try:
             with omx.open_file(os.path.join(self.abm_dir, f"FC{str(self.base_year)[-2:]}_BASE_SKM_PM_D1.omx")) as sov_skim_omx: # FC{str(self.base_year)[-2:]}_BASE_SKM_PK_D1.omx
                 sov_skims = sov_skim_omx['TIME_1Veh']
@@ -132,6 +159,10 @@ class SkimProcessor:
                     mask = ma.masked_where(row > 0, row).mask
                     skim_val = (mask * emp_array_taz * np.exp(-0.049601 * row)).sum()
                     taz_skims.at[i, 'sov_skim'] = skim_val + emp_array_taz[i]
+
+                    skim_val_emp = (mask * hu_array_taz * np.exp(-0.049601 * row)).sum() #new
+                    taz_skims.at[i, 'sov_skim_emp'] = skim_val + hu_array_taz[i] #new
+
         except Exception as e:
             logger.error(f"Error processing SOV skims: {str(e)}")
             raise
@@ -141,7 +172,13 @@ class SkimProcessor:
         taz_skims['IDX_SOV'] = 0.0
         valid_sov = taz_skims['sov_skim'] > 0
         taz_skims.loc[valid_sov, 'IDX_SOV'] = taz_skims[valid_sov]['sov_skim'].rank(pct=True)
+
+        taz_skims['IDX_SOV_emp'] = 0.0 #new
+        valid_sov_emp = taz_skims['sov_skim_emp'] > 0 #new
+        taz_skims.loc[valid_sov, 'IDX_SOV_emp'] = taz_skims[valid_sov_emp]['sov_skim_emp'].rank(pct=True) #new
+
         logger.debug(f"SOV skim range: min={taz_skims['sov_skim'].min()}, max={taz_skims['sov_skim'].max()}")
+        logger.debug(f"SOV skim emp range: min={taz_skims['sov_skim_emp'].min()}, max={taz_skims['sov_skim_emp'].max()}") #new
         
         return taz_skims
         

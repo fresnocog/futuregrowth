@@ -73,41 +73,47 @@ class PerformanceIndicatorCalculator:
         pm_geo_area = maz_new.groupby('GEO_AREA').agg({'HU_NET': 'sum', 'EMP_NET': 'sum'}).reset_index()
         
         # Filter development table for allocated parcels and merge with parcels data
-        dev_table = dev_table.filter(items=['parcelid', 'DEV'])
-        dev_table = dev_table[dev_table['DEV'] <= self.target_year]
-        dev_table = dev_table.merge(pd.read_csv(os.path.join(self.output_dir, "parcels.csv")), how='left', on='parcelid')
-        hu_tot_dev = (dev_table['HU_NET'] + dev_table['HU']).sum()
-        emp_tot_dev = (dev_table['EMP_NET'] + dev_table['EMP']).sum()
+        dev_table = dev_table.filter(items=['parcelid', 'DEV', 'DEV_emp'])
+        dev_table_hu = dev_table[dev_table['DEV'] <= self.target_year]
+        dev_table_hu = dev_table_hu.merge(pd.read_csv(os.path.join(self.output_dir, "parcels.csv")), how='left', on='parcelid')
+
+        dev_table_emp = dev_table[dev_table['DEV_emp'] <= self.target_year]
+        dev_table_emp = dev_table_emp.merge(pd.read_csv(os.path.join(self.output_dir, "parcels.csv")), how='left', on='parcelid')
+
+        hu_tot_dev = (dev_table_hu['HU_NET'] + dev_table_hu['HU']).sum()
         
+        dev_table_hu_emp = dev_table[(dev_table['DEV'] <= self.target_year) | (dev_table['DEV_emp'] <= self.target_year)]
+        dev_table_hu_emp = dev_table_hu_emp.merge(pd.read_csv(os.path.join(self.output_dir, "parcels.csv")), how='left', on='parcelid')
+
         # Total acres developed
-        acres_tot = (dev_table['Vacant'] * dev_table['ACRES'] * dev_table['PLANNED']).sum()
-        acres_res = dev_table[dev_table['HU_NET'] > 0]['ACRES'].sum()
+        acres_tot = (dev_table_hu_emp['Vacant'] * dev_table_hu_emp['ACRES'] * dev_table_hu_emp['PLANNED']).sum()
+        acres_res = dev_table_hu[dev_table_hu['HU_NET'] > 0]['ACRES'].sum()
         
         # TOD, DT, and MF percentages
-        pm_tod_hu = (dev_table['HU_NET'] * dev_table['TOD']).sum() / hu_tot if hu_tot > 0 else 0
-        pm_dt_hu = (dev_table['HU_NET'] * dev_table['DT']).sum() / hu_tot if hu_tot > 0 else 0
-        pm_mf = (dev_table['HU_NET'] * dev_table['HU_MF_P']).sum() / hu_tot if hu_tot > 0 else 0
-        pm_tod_emp = (dev_table['EMP_NET'] * dev_table['TOD']).sum() / emp_tot if emp_tot > 0 else 0
-        pm_dt_emp = (dev_table['EMP_NET'] * dev_table['DT']).sum() / emp_tot if emp_tot > 0 else 0
+        pm_tod_hu = (dev_table_hu['HU_NET'] * dev_table_hu['TOD']).sum() / hu_tot if hu_tot > 0 else 0
+        pm_dt_hu = (dev_table_hu['HU_NET'] * dev_table_hu['DT']).sum() / hu_tot if hu_tot > 0 else 0
+        pm_mf = (dev_table_hu['HU_NET'] * dev_table_hu['HU_MF_P']).sum() / hu_tot if hu_tot > 0 else 0
+        pm_tod_emp = (dev_table_emp['EMP_NET'] * dev_table_emp['TOD']).sum() / emp_tot if emp_tot > 0 else 0
+        pm_dt_emp = (dev_table_emp['EMP_NET'] * dev_table_emp['DT']).sum() / emp_tot if emp_tot > 0 else 0
         
         # MU and redevelopment percentages
         total_growth = hu_tot + emp_tot
-        pm_mu = (dev_table['MU'] * (dev_table['HU_NET'] + dev_table['EMP_NET'])).sum() / total_growth if total_growth > 0 else 0
-        pm_redev = (dev_table['Developed'] * (dev_table['HU_NET'] + dev_table['EMP_NET'])).sum() / total_growth if total_growth > 0 else 0
+        pm_mu = ((dev_table_hu['MU'] * dev_table_hu['HU_NET']).sum() + (dev_table_emp['MU'] * dev_table_emp['EMP_NET']).sum()) / total_growth if total_growth > 0 else 0
+        pm_redev = ((dev_table_hu['Developed'] * dev_table_hu['HU_NET']).sum() + (dev_table_emp['Developed'] * dev_table_emp['EMP_NET']).sum()) / total_growth if total_growth > 0 else 0
         pm_geo_area['PERC'] = 100 * (pm_geo_area['HU_NET'] + pm_geo_area['EMP_NET']) / total_growth if total_growth > 0 else 0
         
         # Residential density
         pm_res_den = hu_tot_dev / acres_res if acres_res > 0 else 0
         
         # Farmland impact
-        pm_impfarm = (dev_table['ACRES'] * dev_table['Vacant'] * (1 - dev_table['Incorporated']) * 
-                      (dev_table['FMMP_P'] + dev_table['FMMP_S'] + dev_table['FMMP_U'])).sum()
-        pm_farm = (dev_table['ACRES'] * dev_table['Vacant'] * 
-                   (dev_table['FMMP_P'] + dev_table['FMMP_S'] + dev_table['FMMP_U'])).sum()
+        pm_impfarm = (dev_table_hu_emp['ACRES'] * dev_table_hu_emp['Vacant'] * (1 - dev_table_hu_emp['Incorporated']) * 
+                      (dev_table_hu_emp['FMMP_P'] + dev_table_hu_emp['FMMP_S'] + dev_table_hu_emp['FMMP_U'])).sum()
+        pm_farm = (dev_table_hu_emp['ACRES'] * dev_table_hu_emp['Vacant'] * 
+                   (dev_table_hu_emp['FMMP_P'] + dev_table_hu_emp['FMMP_S'] + dev_table_hu_emp['FMMP_U'])).sum()
         
         # Fresno infill percentage
-        dev_table_fresno = dev_table[dev_table['SOI'] == 'Fresno']
-        dev_table_notfresno = dev_table[(dev_table['SOI'] != 'Fresno') & (dev_table['SOI'] != "Unincorporate")]
+        dev_table_fresno = dev_table_hu[dev_table_hu['SOI'] == 'Fresno']
+        dev_table_notfresno = dev_table_hu[(dev_table_hu['SOI'] != 'Fresno') & (dev_table_hu['SOI'] != "Unincorporate")]
         hu_tot_fresno = dev_table_fresno['HU_NET'].sum()
         hu_tot_notfresno = dev_table_notfresno['HU_NET'].sum()
         pm_infill = dev_table_fresno[dev_table_fresno['Infill'] == 0]['HU_NET'].sum() / hu_tot_fresno if hu_tot_fresno > 0 else 0
@@ -138,12 +144,12 @@ class PerformanceIndicatorCalculator:
 
         # Employment Density
 
-        dev_table = dev_table.filter(items=['parcelid', 'DEV'])
-        dev_table = dev_table[dev_table['DEV'] <= self.target_year]
-        dev_table = dev_table.merge(pd.read_csv(os.path.join(self.output_dir, "parcels.csv")), how='left', on='parcelid')
+        dev_table = dev_table.filter(items=['parcelid', 'DEV', 'DEV_emp'])
+        dev_table_emp = dev_table[dev_table['DEV_emp'] <= self.target_year]
+        dev_table_emp = dev_table_emp.merge(pd.read_csv(os.path.join(self.output_dir, "parcels.csv")), how='left', on='parcelid')
 
-        emp_tot_dev = dev_table['EMP_NET'].sum()
-        acres_emp= dev_table[dev_table['EMP_NET'] > 0]['ACRES'].sum()
+        emp_tot_dev = (dev_table_emp['EMP_NET'] + dev_table_emp['EMP']).sum()
+        acres_emp= dev_table_emp[dev_table_emp['EMP_NET'] > 0]['ACRES'].sum()
 
         pm_emp_den = emp_tot_dev / acres_emp if acres_emp > 0 else 0
 
